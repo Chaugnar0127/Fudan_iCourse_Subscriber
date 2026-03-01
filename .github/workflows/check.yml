@@ -33,10 +33,8 @@ jobs:
         if: steps.cache-pip.outputs.cache-hit != 'true'
         run: pip install -r requirements.txt
 
-      - name: Install ffmpeg (cached)
-        uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: ffmpeg
+      - name: Install ffmpeg
+        run: sudo apt-get install -y ffmpeg
 
       # Cache ASR models (fixed key — only re-download if model version changes)
       - name: Cache ASR models
