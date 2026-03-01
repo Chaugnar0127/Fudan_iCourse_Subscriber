@@ -94,43 +94,47 @@ li { margin-bottom: 4px; }
 
 
 def _md_to_html(md_text: str) -> str:
-    """Convert Markdown to styled HTML."""
-    return markdown.markdown(md_text, extensions=_MD_EXTENSIONS)
+    """Convert Markdown to styled HTML, rendering LaTeX math as images.
 
-
-def _latex_to_img_html(html: str) -> str:
-    """Replace LaTeX math expressions with rendered <img> tags.
-
-    Skips content inside <code> and <pre> tags.
-    $$...$$ → centered block image, $...$ → inline image.
+    Processing order: extract LaTeX → markdown convert → restore as <img>.
+    This prevents the markdown engine from corrupting backslash escapes in LaTeX.
     """
-    # Split HTML to skip code/pre blocks
-    parts = re.split(r"(<code>.*?</code>|<pre>.*?</pre>)", html, flags=re.DOTALL)
-    for i, part in enumerate(parts):
-        if part.startswith("<code>") or part.startswith("<pre>"):
-            continue
-        # Block math: $$...$$
-        part = re.sub(
-            r"\$\$(.+?)\$\$",
-            lambda m: (
+    # Step 1: Extract LaTeX expressions and replace with placeholders
+    latex_map = {}
+    counter = 0
+
+    def _stash(match):
+        nonlocal counter
+        key = f"\x00LATEX{counter}\x00"
+        counter += 1
+        latex_map[key] = match.group(0)
+        return key
+
+    # Extract $$...$$ (block) before $...$ (inline) to avoid conflicts
+    text = re.sub(r"\$\$(.+?)\$\$", _stash, md_text, flags=re.DOTALL)
+    text = re.sub(r"(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)", _stash, text)
+
+    # Step 2: Convert markdown (LaTeX is safely stashed away)
+    html = markdown.markdown(text, extensions=_MD_EXTENSIONS)
+
+    # Step 3: Replace placeholders with rendered <img> tags (PNG for email compat)
+    for key, original in latex_map.items():
+        if original.startswith("$$"):
+            latex_content = original[2:-2]
+            img = (
                 f'<div style="text-align:center;margin:12px 0">'
-                f'<img src="https://latex.codecogs.com/svg.latex?{quote(m.group(1))}"'
-                f' alt="{escape(m.group(1))}" style="vertical-align:middle"></div>'
-            ),
-            part,
-            flags=re.DOTALL,
-        )
-        # Inline math: $...$
-        part = re.sub(
-            r"\$(.+?)\$",
-            lambda m: (
-                f'<img src="https://latex.codecogs.com/svg.latex?\\inline%20{quote(m.group(1))}"'
-                f' alt="{escape(m.group(1))}" style="vertical-align:middle">'
-            ),
-            part,
-        )
-        parts[i] = part
-    return "".join(parts)
+                f'<img src="https://latex.codecogs.com/png.latex?\\dpi{{150}}%20{quote(latex_content)}"'
+                f' alt="{escape(latex_content)}" style="vertical-align:middle"></div>'
+            )
+        else:
+            latex_content = original[1:-1]
+            img = (
+                f'<img src="https://latex.codecogs.com/png.latex?\\dpi{{150}}\\inline%20{quote(latex_content)}"'
+                f' alt="{escape(latex_content)}" style="vertical-align:middle">'
+            )
+        html = html.replace(key, img)
+
+    return html
 
 
 class Emailer:
@@ -187,7 +191,7 @@ class Emailer:
                     f"<h3>{escape(lec['sub_title'])} "
                     f"<small>({escape(lec['date'])})</small></h3>"
                 )
-                body_parts.append(_latex_to_img_html(_md_to_html(lec["summary"])))
+                body_parts.append(_md_to_html(lec["summary"]))
                 body_parts.append("<hr>")
 
         html = (

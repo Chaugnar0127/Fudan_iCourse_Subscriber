@@ -56,7 +56,8 @@ def process_lecture(
 
         try:
             print(f"    Streaming audio & transcribing...")
-            transcript = transcriber.transcribe_url(video_url)
+            vpn_url, http_headers = client.get_stream_params(video_url)
+            transcript = transcriber.transcribe_url(vpn_url, http_headers=http_headers)
             db.update_transcript(sub_id, transcript)
         except Exception as e:
             db.update_error(sub_id, "transcribe", str(e))

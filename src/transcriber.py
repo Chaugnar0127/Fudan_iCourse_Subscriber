@@ -147,10 +147,19 @@ class Transcriber:
         ]
         return self._transcribe_from_cmd(cmd)
 
-    def transcribe_url(self, url: str, timeout: int = 7200) -> str:
-        """Stream audio directly from a CDN URL (no video download needed)."""
-        cmd = [
-            "ffmpeg",
+    def transcribe_url(self, url: str, timeout: int = 7200, http_headers: str | None = None) -> str:
+        """Stream audio directly from a URL (no video download needed).
+
+        Args:
+            url: Video/audio URL (can be a WebVPN URL).
+            timeout: Max seconds before killing the process.
+            http_headers: ffmpeg-compatible HTTP headers string,
+                          e.g. "Cookie: x=y\\r\\nUser-Agent: z\\r\\n"
+        """
+        cmd = ["ffmpeg"]
+        if http_headers:
+            cmd += ["-headers", http_headers]
+        cmd += [
             "-reconnect", "1",
             "-reconnect_streamed", "1",
             "-reconnect_delay_max", "5",

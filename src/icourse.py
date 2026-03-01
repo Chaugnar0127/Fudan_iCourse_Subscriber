@@ -302,6 +302,20 @@ class ICourseClient:
 
         return self.sign_video_url(base_url, now=now)
 
+    def get_stream_params(self, video_url: str) -> tuple[str, str]:
+        """Get WebVPN URL and HTTP headers for direct streaming (e.g., ffmpeg).
+
+        Returns:
+            (vpn_url, http_headers) where http_headers is ffmpeg-compatible.
+        """
+        from .webvpn import get_vpn_url
+        vpn_url = get_vpn_url(video_url)
+        cookies = "; ".join(
+            f"{c.name}={c.value}" for c in self.vpn.session.cookies
+        )
+        headers = f"Cookie: {cookies}\r\nUser-Agent: {config.USER_AGENT}\r\n"
+        return vpn_url, headers
+
     def download_video(
         self,
         video_url: str,
