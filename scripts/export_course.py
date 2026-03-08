@@ -42,7 +42,7 @@ from src.emailer import _EMAIL_CSS, _PYGMENTS_CSS, _md_to_html  # noqa: E402
 # size them naturally based on the image's intrinsic dimensions instead.
 _PDF_LATEX_CSS = (
     "img { max-width: 100% !important; height: auto !important; }\n"
-    'body { font-family: "AR PL UMing CN", serif; }'
+    'body { font-family: "FandolSong", serif; }'
 )
 
 
