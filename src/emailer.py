@@ -323,9 +323,32 @@ class Emailer:
 
         # HTML (Markdown → styled HTML with CID-embedded LaTeX images)
         cid_images: dict[str, bytes] = {}
-        body_parts = []
+
+        # Pre-compute one anchor ID per course so TOC and headings stay in sync
+        course_anchors = {
+            course_title: f"course-{i}"
+            for i, course_title in enumerate(courses)
+        }
+
+        # Build table of contents
+        toc_items = [
+            f'<li><a href="#{anchor}" style="color:#3498db;text-decoration:none;">'
+            f"{escape(course_title)}</a></li>"
+            for course_title, anchor in course_anchors.items()
+        ]
+        toc_html = (
+            '<nav style="background:#f8f9fa;border:1px solid #e0e0e0;'
+            'border-radius:6px;padding:16px 20px;margin-bottom:28px;">'
+            '<strong style="color:#2c3e50;font-size:16px;">目录</strong>'
+            '<ol style="margin:8px 0 0;padding-left:20px;">'
+            + "\n".join(toc_items)
+            + "</ol></nav>"
+        )
+
+        body_parts = [toc_html]
         for course_title, lectures in courses.items():
-            body_parts.append(f"<h2>{escape(course_title)}</h2>")
+            anchor = course_anchors[course_title]
+            body_parts.append(f'<h2 id="{anchor}">{escape(course_title)}</h2>')
             for lec in lectures:
                 body_parts.append(
                     f"<h3>{escape(lec['sub_title'])} "
