@@ -223,6 +223,10 @@ class AudioDownloader:
                     "-reconnect_delay_max", "5",
                     "-i", vpn_url,
                     "-vn",
+                    # Some iCourse recordings have phase-inverted stereo
+                    # channels.  ffmpeg's implicit ``-ac 1`` sums them and
+                    # cancels the speech; select one physical channel first.
+                    "-af", "pan=mono|c0=FL",
                     "-ar", "16000",
                     "-ac", "1",
                     "-f", "f32le",

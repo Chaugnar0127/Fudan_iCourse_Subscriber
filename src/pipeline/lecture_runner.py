@@ -148,8 +148,12 @@ class LectureRunner:
         if not transcript.strip():
             self._reporter.info("    Empty transcript, skipping summary.")
             self._release_audio(sub_id)
-            self._db.mark_processed(sub_id)
-            self._db.clear_error(sub_id)
+            # An empty transcript is an ASR/recording failure, not a
+            # successfully processed lecture.  Keep it retryable so a
+            # transient or fixable audio problem is not lost permanently.
+            self._db.update_error(
+                sub_id, "transcribe", "empty transcript from ASR"
+            )
             return None
 
         summary = self._summarize(

@@ -655,6 +655,9 @@ class Transcriber:
             "-reconnect_delay_max", "5",
             "-i", url,
             "-vn",
+            # Avoid cancelling phase-inverted stereo recordings while
+            # converting to the mono stream consumed by VAD.
+            "-af", "pan=mono|c0=FL",
             "-ar", str(SAMPLE_RATE), "-ac", "1",
             "-f", "f32le", "-",
         ]
@@ -664,6 +667,7 @@ class Transcriber:
         """Transcribe a local mp4 file via ffmpeg-to-pipe."""
         cmd = [
             "ffmpeg", "-i", video_path,
+            "-af", "pan=mono|c0=FL",
             "-ar", str(SAMPLE_RATE), "-ac", "1",
             "-f", "f32le", "-",
         ]
